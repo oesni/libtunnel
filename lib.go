@@ -255,16 +255,24 @@ func Cloudflare() *cloudflare.Backend {
 // credential chain — including over a code-pinned From spec, after
 // LIBTUNNEL_SPEC (env beats code; SPEC beats FROM).
 func From(spec string) TunnelV1 {
+	return FromWith(spec, Cloudflare())
+}
+
+// FromWith is From through a backend the caller has already configured — a
+// mint provider (WithProvider), reporting (WithReports) and so on — so a
+// stored spec is replayed, and if need be re-minted, under that configuration
+// rather than the defaults. The backend must not be used for another tunnel.
+func FromWith(spec string, cf *cloudflare.Backend) TunnelV1 {
 	return v1alpha1.From(spec, func(backend string, raw json.RawMessage, aside v1alpha1.Aside) (v1.Tunnel, error) {
 		switch backend {
 		case "":
-			return New(Cloudflare()), nil
+			return New(cf), nil
 		case "cloudflare":
 			s := &cloudflare.Spec{}
 			if err := v1alpha1.Unpack(raw, aside, s); err != nil {
 				return nil, fmt.Errorf("invalid cloudflare spec: %w", err)
 			}
-			return v1alpha1.New(cloudflare.From(s)), nil
+			return v1alpha1.New(cf.WithReplay(s)), nil
 		default:
 			return nil, fmt.Errorf("unknown backend %q", backend)
 		}

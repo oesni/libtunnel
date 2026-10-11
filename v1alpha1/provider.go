@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
 	"sync"
 
 	v1 "github.com/cnuss/libtunnel/v1"
@@ -178,12 +177,12 @@ func ExportSpec[T v1.Spec](backend string, spec T) error {
 	selfExportedMu.Lock()
 	selfExported[value] = true
 	selfExportedMu.Unlock()
-	if err := os.Setenv(v1.SpecEnv, value); err != nil {
+	if err := v1.Setenv(v1.SpecEnv, value); err != nil {
 		return err
 	}
 	// Best effort: the hostname mirror is convenience only, not the channel
 	// libtunnel reads, so a failure here shouldn't fail the export.
-	_ = os.Setenv(v1.HostnameEnv, spec.GetHostname())
+	_ = v1.Setenv(v1.HostnameEnv, spec.GetHostname())
 	return nil
 }
 
@@ -193,7 +192,7 @@ func ExportSpec[T v1.Spec](backend string, spec T) error {
 // (ExportSpec) reads as absent — the handoff channel carries parent→child
 // inheritance only.
 func SpecFromEnv[T v1.Spec](backend string, spec T) (bool, error) {
-	env, ok := os.LookupEnv(v1.SpecEnv)
+	env, ok := v1.LookupEnv(v1.SpecEnv)
 	if !ok || env == "" {
 		return false, nil
 	}

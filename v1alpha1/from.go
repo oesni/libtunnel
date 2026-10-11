@@ -43,7 +43,7 @@ func From(spec string, build func(backend string, raw json.RawMessage, aside Asi
 // like From. A reference that cannot be parsed, or carries a foreign backend
 // tag, is an error, not a fallthrough.
 func ReplayFromEnv[T v1.Spec](backend string, spec T) (bool, error) {
-	envelope := loadSpec(os.Getenv(v1.FromEnv))
+	envelope := loadSpec(v1.Getenv(v1.FromEnv))
 	if envelope == "" {
 		return false, nil
 	}

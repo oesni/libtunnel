@@ -307,3 +307,12 @@ func TestSpecHostnameWithPort(t *testing.T) {
 		t.Errorf("child output does not contain %q", want)
 	}
 }
+
+// TestFromWithMalformedSpecFails pins FromWith's no-error contract: a spec that
+// cannot be parsed yields a tunnel already canceled with the cause, as From.
+func TestFromWithMalformedSpecFails(t *testing.T) {
+	tun := libtunnel.FromWith("{not json", libtunnel.Cloudflare().WithReports(false))
+	if tun.Err() == nil {
+		t.Fatal("FromWith with a malformed spec did not fail")
+	}
+}

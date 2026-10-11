@@ -298,6 +298,9 @@ type Backend struct {
 	// "Authorization: token <value>". Empty sends none; v1.TokenEnv
 	// supersedes either.
 	token string
+	// noReport keeps the mint client's network-error reports on this
+	// machine (WithReports(false)). v1.NoReportEnv opts out either way.
+	noReport bool
 	// Runtime state wired at connect. reconnected feeds the supervisor's
 	// external-control channel, edge tracks edge connections, and reconnectCtx
 	// is the tunnel context Reconnect waits on. All nil until connect runs.
@@ -356,6 +359,15 @@ func New() *Backend {
 // still override it (env beats code).
 func From(spec *Spec) *Backend {
 	b := New()
+	b.hints = spec
+	return b
+}
+
+// WithReplay makes b replay spec, as From does for a fresh backend, so a
+// caller that configures the backend first (WithProvider, WithReports, ...)
+// can replay a stored spec through that configuration. Nil replays nothing.
+// It backs libtunnel.FromWith.
+func (b *Backend) WithReplay(spec *Spec) *Backend {
 	b.hints = spec
 	return b
 }
@@ -519,7 +531,7 @@ func (b *Backend) WithEdgeProtocol(p EdgeProtocol) *Backend {
 // mirror over the code value, and EdgeAuto when neither is set.
 func (b *Backend) resolveEdgeProtocol() (EdgeProtocol, error) {
 	p := b.edgeProtocol
-	if raw := strings.TrimSpace(os.Getenv(v1.CloudflareEdgeProtocolEnv)); raw != "" {
+	if raw := strings.TrimSpace(v1.Getenv(v1.CloudflareEdgeProtocolEnv)); raw != "" {
 		p = EdgeProtocol(raw)
 	}
 	switch p {
@@ -569,6 +581,17 @@ func (b *Backend) WithToken(token string) v1.Backend[*Spec] {
 	return b
 }
 
+// WithReports sets whether the mint client reports network errors (a 429, a
+// timeout, a name that did not resolve, a certificate it would not trust) to
+// the collector the provider's NEL and Report-To headers name. On by default,
+// like a browser; false keeps them on this machine. The v1.NoReportEnv
+// opt-out applies either way, so an operator can still turn reporting off
+// for a binary that leaves it on.
+func (b *Backend) WithReports(enabled bool) *Backend {
+	b.noReport = !enabled
+	return b
+}
+
 var (
 	_ v1.Backend[*Spec]      = (*Backend)(nil)
 	_ v1alpha1.Engine[*Spec] = (*Backend)(nil)
@@ -598,6 +621,7 @@ func (b *Backend) Provider() v1.Provider[*Spec] {
 	b.prober.WithBridge(bridgeFor(cmp.Or(qt.URL, quickTunnelURL)))
 	qt.Headers = mintHeaders(b.headers)
 	qt.Token = b.token
+	qt.NoReport = b.noReport
 	return v1alpha1.Export(backendName, &hinted{backend: b, mint: qt})
 }
 
@@ -692,7 +716,7 @@ var probeHint = func(ctx context.Context, prober *probe.Prober, hint *Spec, log 
 		WithHostname(hint.Hostname).
 		WithAccountTag(hint.AccountTag).
 		WithSecret(hint.Secret).
-		WithLogger(zerologger(log)).
+		WithLogger(zerologger(log, nil)).
 		Probe(asked, cancel)
 
 	// The verdict the probe cancels with rather than returns. A hint whose
@@ -736,7 +760,7 @@ func (b *Backend) hint() (*Spec, error) {
 	stringEnv(v1.CloudflareNameEnv, &fields.Name)
 	stringEnv(v1.CloudflareHostnameEnv, &fields.Hostname)
 	stringEnv(v1.CloudflareAccountTagEnv, &fields.AccountTag)
-	if v := os.Getenv(v1.CloudflareSecretEnv); v != "" {
+	if v := v1.Getenv(v1.CloudflareSecretEnv); v != "" {
 		secret, err := base64.StdEncoding.DecodeString(v)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", v1.CloudflareSecretEnv, err)
@@ -776,7 +800,7 @@ func mintHeaders(code http.Header) http.Header {
 		}
 	}
 
-	raw := os.Getenv(v1.CloudflareHeadersEnv)
+	raw := v1.Getenv(v1.CloudflareHeadersEnv)
 	if raw == "" {
 		return out
 	}
@@ -826,7 +850,7 @@ func bridgeFor(endpoint string) string {
 // stringEnv overwrites *field with the env variable's value when it is set
 // and non-empty.
 func stringEnv(name string, field *string) {
-	if v := os.Getenv(name); v != "" {
+	if v := v1.Getenv(name); v != "" {
 		*field = v
 	}
 }
@@ -904,7 +928,10 @@ func (b *Backend) connect(t *v1alpha1.TunnelImpl[*Spec], origin *url.URL) error 
 	loop := loopPrefix + hex.EncodeToString(nonce)
 	t.Logger().Info("origin wired", "origin", service)
 	ctx := t.Context()
-	log := zerologger(t.Logger())
+	// A deliberate shutdown (Cancel with no cause, ErrClosed) is not an
+	// error, so cloudflared's error-level notes about the connections it
+	// closes are demoted to debug once the tunnel has ended that way.
+	log := zerologger(t.Logger(), func() bool { return errors.Is(context.Cause(ctx), v1.ErrClosed) })
 	spec := t.Spec()
 	if spec == nil {
 		return fmt.Errorf("no spec resolved")

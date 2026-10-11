@@ -1311,3 +1311,32 @@ func TestSecretComesOffTheSpec(t *testing.T) {
 		t.Errorf("Secret = %q with no secret, want nil", got)
 	}
 }
+
+// TestIsolatedIgnoresLocalURLEnv pins that an inherited LIBTUNNEL_LOCAL_URL
+// cannot redirect a tunnel whose process installed v1.Isolated: the engine is
+// handed the caller's listener, not the variable's URL.
+func TestIsolatedIgnoresLocalURLEnv(t *testing.T) {
+	t.Setenv(v1.LocalURLEnv, "http://127.0.0.1:9")
+	v1.SetEnvironment(v1.Isolated)
+	t.Cleanup(func() { v1.SetEnvironment(nil) })
+
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+	engine := newFakeEngine(&cloudflare.Spec{Hostname: "demo.trycloudflare.com"})
+	conn := v1alpha1.New(engine).WithListener(l)
+	defer conn.Cancel()
+
+	select {
+	case got := <-engine.got:
+		if got != l {
+			t.Errorf("engine received listener %v, want the caller's %v", got.Addr(), l.Addr())
+		}
+	case u := <-engine.gotURL:
+		t.Errorf("engine received %v from the environment under Isolated", u)
+	case <-time.After(5 * time.Second):
+		t.Fatal("engine never received an origin")
+	}
+}

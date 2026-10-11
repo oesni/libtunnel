@@ -11,7 +11,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -98,6 +97,10 @@ type QuickTunnelProvider struct {
 	Token string
 	// Log receives retry warnings. Nil is silent.
 	Log *slog.Logger
+	// NoReport keeps the mint client from posting network-error reports to
+	// the collector the provider names (WithReports(false)). The
+	// v1.NoReportEnv opt-out applies either way.
+	NoReport bool
 	// hint is what the caller already knows about the tunnel. Its record id
 	// resumes a hostname minted earlier; the rest names what it is asking
 	// for. Nil, or empty, mints fresh.
@@ -149,7 +152,7 @@ func (p *QuickTunnelProvider) Spec(ctx context.Context) (*Spec, error) {
 	// "every code knob has an env mirror".
 	endpoint := p.URL
 	if endpoint == "" {
-		if host := os.Getenv(v1.CloudflareProviderEnv); host != "" {
+		if host := v1.Getenv(v1.CloudflareProviderEnv); host != "" {
 			endpoint = providerEndpoint(host)
 		}
 	}
@@ -160,7 +163,7 @@ func (p *QuickTunnelProvider) Spec(ctx context.Context) (*Spec, error) {
 	// tunnel.pizza answers once the hostname's record has spread; another
 	// endpoint may answer before, so its hostname gets a head start.
 	mintWait := 5 * time.Second
-	if v := os.Getenv(v1.CloudflareMintWaitEnv); v != "" {
+	if v := v1.Getenv(v1.CloudflareMintWaitEnv); v != "" {
 		d, err := time.ParseDuration(v)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", v1.CloudflareMintWaitEnv, err)
@@ -199,30 +202,8 @@ func (p *QuickTunnelProvider) Spec(ctx context.Context) (*Spec, error) {
 	agent := product + " (" + comment + ")"
 
 	client := http.Client{
-		// Reported to the provider the way a browser would: a 429, a
-		// timeout, a name that did not resolve, a certificate it would not
-		// trust — each posted to whatever collector the provider's NEL and
-		// Report-To headers name, so the operator sees client-side failures
-		// without anyone filing them.
-		Transport: nel.Transport(&http.Transport{
-			// The trust set libtunnel ships, not the host's alone: an image
-			// with no ca-certificates package still verifies the mint
-			// endpoint. Without this the edge connection would have verified
-			// fine against the bundle compiled into the same binary while the
-			// mint three files away could not (#164).
-			TLSClientConfig: &tls.Config{RootCAs: trust.Pool()},
-			// Per-attempt bounds. The TLS handshake terminates at the
-			// provider's edge and is quick regardless of load, so it stays
-			// tight — a hung handshake is a dead endpoint, and failing fast
-			// leaves budget for a retry. The response headers are the mint
-			// itself: the endpoint holds the request while it mints and waits
-			// out DNS propagation for the hostname, so the header wait must
-			// cover a full server-side mint and the overall Timeout is the
-			// real per-attempt bound.
-			TLSHandshakeTimeout:   5 * time.Second,
-			ResponseHeaderTimeout: 15 * time.Second,
-		}, agent, log),
-		Timeout: 15 * time.Second,
+		Transport: mintTransport(p.NoReport, agent, log),
+		Timeout:   15 * time.Second,
 	}
 
 	// fetch's middle result is the server-requested retry delay: a 429's
@@ -480,4 +461,37 @@ func (p *QuickTunnelProvider) Spec(ctx context.Context) (*Spec, error) {
 		case <-time.After(wait):
 		}
 	}
+}
+
+// mintTransport is the mint client's transport: libtunnel's own trust set and
+// per-attempt bounds, wrapped for network-error reporting unless noReport.
+func mintTransport(noReport bool, agent string, log *slog.Logger) http.RoundTripper {
+	var transport http.RoundTripper = &http.Transport{
+		// The trust set libtunnel ships, not the host's alone: an image
+		// with no ca-certificates package still verifies the mint
+		// endpoint. Without this the edge connection would have verified
+		// fine against the bundle compiled into the same binary while the
+		// mint three files away could not (#164).
+		TLSClientConfig: &tls.Config{RootCAs: trust.Pool()},
+		// Per-attempt bounds. The TLS handshake terminates at the
+		// provider's edge and is quick regardless of load, so it stays
+		// tight — a hung handshake is a dead endpoint, and failing fast
+		// leaves budget for a retry. The response headers are the mint
+		// itself: the endpoint holds the request while it mints and waits
+		// out DNS propagation for the hostname, so the header wait must
+		// cover a full server-side mint and the overall Timeout is the
+		// real per-attempt bound.
+		TLSHandshakeTimeout:   5 * time.Second,
+		ResponseHeaderTimeout: 15 * time.Second,
+	}
+	// Reported to the provider the way a browser would: a 429, a
+	// timeout, a name that did not resolve, a certificate it would not
+	// trust — each posted to whatever collector the provider's NEL and
+	// Report-To headers name, so the operator sees client-side failures
+	// without anyone filing them.
+	// NoReport (WithReports(false)) keeps them on this machine.
+	if !noReport {
+		transport = nel.Transport(transport, agent, log)
+	}
+	return transport
 }

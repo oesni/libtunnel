@@ -164,7 +164,7 @@ func normalizeLocalURL(u *url.URL) (*url.URL, error) {
 // tunnel canceled: the provide slot is spent either way. Unset, it reports
 // false and the caller provides as usual. Runs inside originOnce.Do.
 func (t *TunnelImpl[T]) provideFromEnv() bool {
-	env, ok := os.LookupEnv(v1.LocalURLEnv)
+	env, ok := v1.LookupEnv(v1.LocalURLEnv)
 	if !ok || env == "" {
 		return false
 	}

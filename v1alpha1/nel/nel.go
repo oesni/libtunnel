@@ -32,7 +32,6 @@ import (
 	"net/http"
 	"net/http/httptrace"
 	"net/url"
-	"os"
 	"strings"
 	"sync"
 	"syscall"
@@ -103,7 +102,7 @@ var store = &cache{
 //
 // With OptOutEnv set, base is returned as is.
 func Transport(base http.RoundTripper, userAgent string, log *slog.Logger) http.RoundTripper {
-	if os.Getenv(OptOutEnv) != "" {
+	if v1.Getenv(OptOutEnv) != "" {
 		return base
 	}
 	if base == nil {
