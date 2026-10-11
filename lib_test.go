@@ -316,3 +316,27 @@ func TestFromWithMalformedSpecFails(t *testing.T) {
 		t.Fatal("FromWith with a malformed spec did not fail")
 	}
 }
+
+// TestFailedTunnelGettersDoNotPanic pins Failed's documented contract: a tunnel
+// from a spec that cannot be parsed resolves every getter to its zero value
+// instead of panicking on the missing spec, so a caller can read Hostname and
+// then Err.
+func TestFailedTunnelGettersDoNotPanic(t *testing.T) {
+	for _, tun := range []libtunnel.TunnelV1{
+		libtunnel.FromWith(`{"stale":true}`, libtunnel.Cloudflare().WithReports(false)),
+		libtunnel.From("{not json"),
+	} {
+		if h := tun.Hostname(); h != "" {
+			t.Errorf("Hostname = %q, want empty", h)
+		}
+		if s := tun.Serialize(); s != "" {
+			t.Errorf("Serialize = %q, want empty", s)
+		}
+		if tun.Secret() != nil || tun.Headers() != nil || tun.Messages() != nil {
+			t.Error("a failed tunnel returned spec data")
+		}
+		if tun.Err() == nil {
+			t.Error("a failed tunnel has no Err")
+		}
+	}
+}

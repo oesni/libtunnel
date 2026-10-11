@@ -266,7 +266,10 @@ func (t *TunnelImpl[T]) letGo() bool {
 // Serialize implements v1.Tunnel: the resolved spec's Serialize. A getter
 // like Hostname — the first use resolves the spec.
 func (t *TunnelImpl[T]) Serialize() string {
-	return t.Spec().Serialize()
+	if s, ok := t.resolved(); ok {
+		return s.Serialize()
+	}
+	return ""
 }
 
 // deliver hands t to whoever waits on signal. Each call gets its own channel:

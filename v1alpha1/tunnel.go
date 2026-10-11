@@ -492,23 +492,43 @@ func (t *TunnelImpl[T]) Spec() T {
 }
 
 // Hostname is the public hostname from the spec.
+// resolved is Spec plus whether there is one to read. A tunnel with no
+// backend (Failed) resolves to its zero spec, which for an interface spec
+// type is nil and has no methods to call.
+func (t *TunnelImpl[T]) resolved() (T, bool) {
+	s := t.Spec()
+	return s, any(s) != nil
+}
+
 func (t *TunnelImpl[T]) Hostname() string {
-	return t.Spec().GetHostname()
+	if s, ok := t.resolved(); ok {
+		return s.GetHostname()
+	}
+	return ""
 }
 
 // Messages is what the provider said with the spec, as sent.
 func (t *TunnelImpl[T]) Messages() []string {
-	return t.Spec().Messages()
+	if s, ok := t.resolved(); ok {
+		return s.Messages()
+	}
+	return nil
 }
 
 // Headers is what the provider answered the mint with, as sent.
 func (t *TunnelImpl[T]) Headers() http.Header {
-	return t.Spec().Headers()
+	if s, ok := t.resolved(); ok {
+		return s.Headers()
+	}
+	return nil
 }
 
 // Secret is the spec's secret, nil when its backend has none.
 func (t *TunnelImpl[T]) Secret() []byte {
-	return t.Spec().GetSecret()
+	if s, ok := t.resolved(); ok {
+		return s.GetSecret()
+	}
+	return nil
 }
 
 // Host is the first label of Hostname.
