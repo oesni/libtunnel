@@ -31,9 +31,9 @@ import (
 	"testing"
 	"time"
 
-	v1 "github.com/cnuss/libtunnel/v1"
-	"github.com/cnuss/libtunnel/v1alpha1"
-	"github.com/cnuss/libtunnel/v1alpha1/cloudflare"
+	v1 "github.com/oesni/libtunnel/v1"
+	"github.com/oesni/libtunnel/v1alpha1"
+	"github.com/oesni/libtunnel/v1alpha1/cloudflare"
 )
 
 // TestMain raises the default logger to debug before any test runs. The live

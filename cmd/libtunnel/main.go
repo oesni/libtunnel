@@ -35,8 +35,8 @@ import (
 	"runtime"
 	"syscall"
 
-	"github.com/cnuss/libtunnel"
-	v1 "github.com/cnuss/libtunnel/v1"
+	"github.com/oesni/libtunnel"
+	v1 "github.com/oesni/libtunnel/v1"
 )
 
 func main() {

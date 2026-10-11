@@ -11,7 +11,7 @@ import (
 	"net/http/httptest"
 	"os"
 
-	"github.com/cnuss/libtunnel"
+	"github.com/oesni/libtunnel"
 )
 
 // The full lifecycle: bind a listener, hand it to the tunnel (which lazily

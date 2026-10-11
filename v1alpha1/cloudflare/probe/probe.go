@@ -38,7 +38,7 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/websocket"
 
-	"github.com/cnuss/libtunnel/v1alpha1/cloudflare/trust"
+	"github.com/oesni/libtunnel/v1alpha1/cloudflare/trust"
 )
 
 // Timeout bounds one probe end to end — discovery, dial, handshake, RPC.

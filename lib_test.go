@@ -17,10 +17,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cnuss/libtunnel"
-	v1 "github.com/cnuss/libtunnel/v1"
-	"github.com/cnuss/libtunnel/v1alpha1"
-	"github.com/cnuss/libtunnel/v1alpha1/cloudflare"
+	"github.com/oesni/libtunnel"
+	v1 "github.com/oesni/libtunnel/v1"
+	"github.com/oesni/libtunnel/v1alpha1"
+	"github.com/oesni/libtunnel/v1alpha1/cloudflare"
 )
 
 // mintServer points the credential chain at a stub mint that answers with

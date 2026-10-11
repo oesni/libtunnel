@@ -17,9 +17,9 @@ import (
 	"testing"
 	"time"
 
-	v1 "github.com/cnuss/libtunnel/v1"
-	"github.com/cnuss/libtunnel/v1alpha1"
-	"github.com/cnuss/libtunnel/v1alpha1/cloudflare"
+	v1 "github.com/oesni/libtunnel/v1"
+	"github.com/oesni/libtunnel/v1alpha1"
+	"github.com/oesni/libtunnel/v1alpha1/cloudflare"
 )
 
 // fakeEngine satisfies the Engine contract without dialing anything: it

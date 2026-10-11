@@ -43,11 +43,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 
-	v1 "github.com/cnuss/libtunnel/v1"
-	"github.com/cnuss/libtunnel/v1alpha1"
-	"github.com/cnuss/libtunnel/v1alpha1/cloudflare/probe"
-	"github.com/cnuss/libtunnel/v1alpha1/cloudflare/spec"
-	"github.com/cnuss/libtunnel/v1alpha1/cloudflare/trust"
+	v1 "github.com/oesni/libtunnel/v1"
+	"github.com/oesni/libtunnel/v1alpha1"
+	"github.com/oesni/libtunnel/v1alpha1/cloudflare/probe"
+	"github.com/oesni/libtunnel/v1alpha1/cloudflare/spec"
+	"github.com/oesni/libtunnel/v1alpha1/cloudflare/trust"
 )
 
 // cloudflaredVersion is reported to the edge as the connector version —
@@ -70,7 +70,7 @@ var libtunnelVersion = sync.OnceValue(func() string {
 	version := "devel"
 	if bi, ok := debug.ReadBuildInfo(); ok {
 		for _, dep := range bi.Deps {
-			if dep.Path == "github.com/cnuss/libtunnel" {
+			if dep.Path == "github.com/oesni/libtunnel" {
 				if dep.Replace != nil {
 					dep = dep.Replace
 				}

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cnuss/libtunnel/v1alpha1"
+	"github.com/oesni/libtunnel/v1alpha1"
 )
 
 // TestRecordIDRidesTheEnvelopeNotTheSpec pins where the record goes: the

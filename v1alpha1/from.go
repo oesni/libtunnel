@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	v1 "github.com/cnuss/libtunnel/v1"
+	v1 "github.com/oesni/libtunnel/v1"
 )
 
 // From loads a serialized spec and replays it into a tunnel. spec is resolved

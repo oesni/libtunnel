@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	v1 "github.com/cnuss/libtunnel/v1"
+	v1 "github.com/oesni/libtunnel/v1"
 )
 
 // WithLogger sets the logger, once: the first call wins, and a nil logger is

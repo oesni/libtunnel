@@ -18,9 +18,9 @@ import (
 	"github.com/cloudflare/cloudflared/supervisor"
 
 	"github.com/cloudflare/cloudflared/connection"
-	v1 "github.com/cnuss/libtunnel/v1"
+	v1 "github.com/oesni/libtunnel/v1"
 
-	"github.com/cnuss/libtunnel/v1alpha1"
+	"github.com/oesni/libtunnel/v1alpha1"
 )
 
 // TestWithListenerRejectsMalformedSpecID pins the fail-fast contract: a spec

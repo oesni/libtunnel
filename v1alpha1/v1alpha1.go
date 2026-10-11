@@ -20,7 +20,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	v1 "github.com/cnuss/libtunnel/v1"
+	v1 "github.com/oesni/libtunnel/v1"
 )
 
 // Engine is the alpha-internal contract behind v1.Backend: what the tunnel

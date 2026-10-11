@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	v1 "github.com/cnuss/libtunnel/v1"
+	v1 "github.com/oesni/libtunnel/v1"
 )
 
 // TestFailureClassesAnswerErrFailed pins the umbrella: every failure class is

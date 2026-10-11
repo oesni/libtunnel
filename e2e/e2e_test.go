@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	v1 "github.com/cnuss/libtunnel/v1"
+	v1 "github.com/oesni/libtunnel/v1"
 )
 
 // runTimeout bounds a single example run. A wedged example (e.g. a

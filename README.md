@@ -24,7 +24,7 @@ tunnel's first use of the default.
 ## Quick Start
 
 ```sh
-go get github.com/cnuss/libtunnel
+go get github.com/oesni/libtunnel
 ```
 
 ```go
@@ -37,7 +37,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/cnuss/libtunnel"
+	"github.com/oesni/libtunnel"
 )
 
 func main() {
@@ -69,14 +69,14 @@ self-signed certificates welcome.)
 Three packages, stable/alpha versioning:
 
 ```
-github.com/cnuss/libtunnel                      — root façade: New, backends,
+github.com/oesni/libtunnel                      — root façade: New, backends,
                                                   providers, handoff helpers.
-github.com/cnuss/libtunnel/v1                   — stable Tunnel +
+github.com/oesni/libtunnel/v1                   — stable Tunnel +
                                                   Provider[T]/Backend[T] contract.
-github.com/cnuss/libtunnel/v1alpha1             — lazy tunnel core + generic
+github.com/oesni/libtunnel/v1alpha1             — lazy tunnel core + generic
                                                   providers. May change between
                                                   alpha revisions.
-github.com/cnuss/libtunnel/v1alpha1/cloudflare  — the cloudflared quick-tunnel
+github.com/oesni/libtunnel/v1alpha1/cloudflare  — the cloudflared quick-tunnel
                                                   engine + its Spec type.
 ```
 

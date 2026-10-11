@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"sync"
 
-	v1 "github.com/cnuss/libtunnel/v1"
+	v1 "github.com/oesni/libtunnel/v1"
 )
 
 // specEnvelope is the wire form of v1.SpecEnv: the backend name plus the

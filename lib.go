@@ -6,10 +6,10 @@
 //
 //   - libtunnel (this package) — thin façade exposing New and the backend
 //     constructors. Stable surface for application code.
-//   - github.com/cnuss/libtunnel/v1 — the stable Tunnel/Provider/Backend
+//   - github.com/oesni/libtunnel/v1 — the stable Tunnel/Provider/Backend
 //     interfaces and spec types. Application code that wants to declare
 //     types against the contract imports this.
-//   - github.com/cnuss/libtunnel/v1alpha1 — the current implementation: the
+//   - github.com/oesni/libtunnel/v1alpha1 — the current implementation: the
 //     lazy tunnel core plus generic providers, with backend engines in
 //     subpackages (v1alpha1/cloudflare). Internals may change between alpha
 //     revisions.
@@ -34,17 +34,17 @@ import (
 	"fmt"
 	"runtime/debug"
 
-	v1 "github.com/cnuss/libtunnel/v1"
-	"github.com/cnuss/libtunnel/v1alpha1"
-	"github.com/cnuss/libtunnel/v1alpha1/cloudflare"
+	v1 "github.com/oesni/libtunnel/v1"
+	"github.com/oesni/libtunnel/v1alpha1"
+	"github.com/oesni/libtunnel/v1alpha1/cloudflare"
 )
 
 // modulePath is libtunnel's import path — used to find libtunnel's own entry
 // in an importer's build info.
-const modulePath = "github.com/cnuss/libtunnel"
+const modulePath = "github.com/oesni/libtunnel"
 
 // version is stamped into libtunnel's own release binaries via
-// -ldflags "-X github.com/cnuss/libtunnel.version=<tag>" (the Makefile,
+// -ldflags "-X github.com/oesni/libtunnel.version=<tag>" (the Makefile,
 // Dockerfile, and release workflow all pass the release tag). It is empty in
 // a plain `go build` and in every downstream consumer's build, where Version
 // derives the value from build info instead.

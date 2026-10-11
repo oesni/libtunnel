@@ -1,4 +1,4 @@
-module github.com/cnuss/libtunnel
+module github.com/oesni/libtunnel
 
 go 1.26.0
 

@@ -15,10 +15,10 @@ import (
 	"strings"
 	"time"
 
-	v1 "github.com/cnuss/libtunnel/v1"
-	"github.com/cnuss/libtunnel/v1alpha1"
-	"github.com/cnuss/libtunnel/v1alpha1/cloudflare/trust"
-	"github.com/cnuss/libtunnel/v1alpha1/nel"
+	v1 "github.com/oesni/libtunnel/v1"
+	"github.com/oesni/libtunnel/v1alpha1"
+	"github.com/oesni/libtunnel/v1alpha1/cloudflare/trust"
+	"github.com/oesni/libtunnel/v1alpha1/nel"
 )
 
 // quickTunnelURL is the public endpoint that mints anonymous quick tunnels.
