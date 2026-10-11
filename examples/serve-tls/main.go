@@ -32,7 +32,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/cnuss/libtunnel"
+	"github.com/oesni/libtunnel"
 )
 
 func main() {

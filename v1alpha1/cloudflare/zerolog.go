@@ -17,12 +17,22 @@ import (
 // itself carries.
 type slogWriter struct {
 	log *slog.Logger
+	// quiet, when it reports true, demotes warnings and errors to debug. The
+	// tunnel sets it for a deliberate shutdown: cloudflared reports its
+	// connections ending ("Connection terminated", "no more connections
+	// active and exiting") at error level even when the caller asked for
+	// exactly that. Nil never demotes.
+	quiet func() bool
 }
 
 var _ io.Writer = slogWriter{}
 
 func (w slogWriter) Write(p []byte) (int, error) {
-	w.log.Log(context.Background(), recordLevel(p), strings.TrimRight(string(p), "\n"))
+	level := recordLevel(p)
+	if level > slog.LevelDebug && w.quiet != nil && w.quiet() {
+		level = slog.LevelDebug
+	}
+	w.log.Log(context.Background(), level, strings.TrimRight(string(p), "\n"))
 	return len(p), nil
 }
 
@@ -58,12 +68,12 @@ func recordLevel(p []byte) slog.Level {
 // handler. zerolog drops a sub-threshold event before serializing it, so a
 // silent tunnel still skips the per-event JSON encoding that sits on the proxy
 // hot path — while warnings and errors, which a caller at any level wants,
-// still get through.
-func zerologger(log *slog.Logger) *zerolog.Logger {
+// still get through. quiet is the slogWriter's: nil never demotes.
+func zerologger(log *slog.Logger, quiet func() bool) *zerolog.Logger {
 	lvl := zerolog.WarnLevel
 	if log.Enabled(context.Background(), slog.LevelDebug) {
 		lvl = zerolog.DebugLevel
 	}
-	l := zerolog.New(slogWriter{log: log}).Level(lvl).With().Str("component", "tunnel").Logger()
+	l := zerolog.New(slogWriter{log: log, quiet: quiet}).Level(lvl).With().Str("component", "tunnel").Logger()
 	return &l
 }

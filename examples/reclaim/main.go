@@ -6,7 +6,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/cnuss/libtunnel"
+	"github.com/oesni/libtunnel"
 )
 
 func main() {

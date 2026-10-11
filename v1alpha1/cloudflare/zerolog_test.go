@@ -83,11 +83,44 @@ func TestSlogWriterForwardsAtRecordLevel(t *testing.T) {
 // reads.
 func TestZerologgerThreshold(t *testing.T) {
 	quiet := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelInfo}))
-	if got := zerologger(quiet).GetLevel(); got != zerolog.WarnLevel {
+	if got := zerologger(quiet, nil).GetLevel(); got != zerolog.WarnLevel {
 		t.Errorf("info-level handler yields zerolog %v, want %v", got, zerolog.WarnLevel)
 	}
 	loud := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	if got := zerologger(loud).GetLevel(); got != zerolog.DebugLevel {
+	if got := zerologger(loud, nil).GetLevel(); got != zerolog.DebugLevel {
 		t.Errorf("debug-level handler yields zerolog %v, want %v", got, zerolog.DebugLevel)
+	}
+}
+
+// TestSlogWriterQuietDemotes pins the deliberate-shutdown demotion: once quiet
+// reports true, cloudflared's error and warn lines about connections it was
+// told to close arrive at debug, and debug lines stay debug. Before that, the
+// same lines keep their own level.
+func TestSlogWriterQuietDemotes(t *testing.T) {
+	closing := false
+	c := &capture{}
+	w := slogWriter{log: slog.New(c), quiet: func() bool { return closing }}
+
+	lines := []string{
+		`{"level":"error","component":"tunnel","message":"Connection terminated"}`,
+		`{"level":"warn","component":"tunnel","message":"retrying"}`,
+		`{"level":"debug","component":"tunnel","message":"detail"}`,
+	}
+	for _, l := range lines {
+		_, _ = w.Write([]byte(l + "\n"))
+	}
+	closing = true
+	for _, l := range lines {
+		_, _ = w.Write([]byte(l + "\n"))
+	}
+
+	want := []slog.Level{slog.LevelError, slog.LevelWarn, slog.LevelDebug, slog.LevelDebug, slog.LevelDebug, slog.LevelDebug}
+	if len(c.levels) != len(want) {
+		t.Fatalf("wrote %d records, want %d", len(c.levels), len(want))
+	}
+	for i, lvl := range want {
+		if c.levels[i] != lvl {
+			t.Errorf("record %d at %v, want %v", i, c.levels[i], lvl)
+		}
 	}
 }

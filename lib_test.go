@@ -17,10 +17,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cnuss/libtunnel"
-	v1 "github.com/cnuss/libtunnel/v1"
-	"github.com/cnuss/libtunnel/v1alpha1"
-	"github.com/cnuss/libtunnel/v1alpha1/cloudflare"
+	"github.com/oesni/libtunnel"
+	v1 "github.com/oesni/libtunnel/v1"
+	"github.com/oesni/libtunnel/v1alpha1"
+	"github.com/oesni/libtunnel/v1alpha1/cloudflare"
 )
 
 // mintServer points the credential chain at a stub mint that answers with
@@ -305,5 +305,38 @@ func TestSpecHostnameWithPort(t *testing.T) {
 	}
 	if want := "port-child host=scenario domain=tunneled.pizza:8443 port=8443"; !strings.Contains(string(out), want) {
 		t.Errorf("child output does not contain %q", want)
+	}
+}
+
+// TestFromWithMalformedSpecFails pins FromWith's no-error contract: a spec that
+// cannot be parsed yields a tunnel already canceled with the cause, as From.
+func TestFromWithMalformedSpecFails(t *testing.T) {
+	tun := libtunnel.FromWith("{not json", libtunnel.Cloudflare().WithReports(false))
+	if tun.Err() == nil {
+		t.Fatal("FromWith with a malformed spec did not fail")
+	}
+}
+
+// TestFailedTunnelGettersDoNotPanic pins Failed's documented contract: a tunnel
+// from a spec that cannot be parsed resolves every getter to its zero value
+// instead of panicking on the missing spec, so a caller can read Hostname and
+// then Err.
+func TestFailedTunnelGettersDoNotPanic(t *testing.T) {
+	for _, tun := range []libtunnel.TunnelV1{
+		libtunnel.FromWith(`{"stale":true}`, libtunnel.Cloudflare().WithReports(false)),
+		libtunnel.From("{not json"),
+	} {
+		if h := tun.Hostname(); h != "" {
+			t.Errorf("Hostname = %q, want empty", h)
+		}
+		if s := tun.Serialize(); s != "" {
+			t.Errorf("Serialize = %q, want empty", s)
+		}
+		if tun.Secret() != nil || tun.Headers() != nil || tun.Messages() != nil {
+			t.Error("a failed tunnel returned spec data")
+		}
+		if tun.Err() == nil {
+			t.Error("a failed tunnel has no Err")
+		}
 	}
 }

@@ -18,9 +18,9 @@ import (
 	"github.com/cloudflare/cloudflared/supervisor"
 
 	"github.com/cloudflare/cloudflared/connection"
-	v1 "github.com/cnuss/libtunnel/v1"
+	v1 "github.com/oesni/libtunnel/v1"
 
-	"github.com/cnuss/libtunnel/v1alpha1"
+	"github.com/oesni/libtunnel/v1alpha1"
 )
 
 // TestWithListenerRejectsMalformedSpecID pins the fail-fast contract: a spec
@@ -1567,5 +1567,47 @@ func TestMintHeadersAreTheAnsweringResponses(t *testing.T) {
 	}
 	if got := spec.Headers().Values("X-Attempt"); !reflect.DeepEqual(got, []string{"answered"}) {
 		t.Errorf("X-Attempt = %q, want only the answering response's", got)
+	}
+}
+
+// TestWithReportsFalseSkipsNEL pins the code-level reporting opt-out: a backend
+// built with WithReports(false) hands its mint a provider whose client is the
+// plain transport, so no network-error report can leave the machine, while the
+// default still wraps it.
+func TestWithReportsFalseSkipsNEL(t *testing.T) {
+	t.Setenv(v1.NoReportEnv, "")
+	if _, plain := mintTransport(true, "ua", nil).(*http.Transport); !plain {
+		t.Error("mintTransport(noReport=true) is wrapped, want the plain *http.Transport")
+	}
+	if _, plain := mintTransport(false, "ua", nil).(*http.Transport); plain {
+		t.Error("mintTransport(noReport=false) is not wrapped for reporting")
+	}
+
+	if !New().WithReports(false).noReport {
+		t.Fatal("WithReports(false) did not set noReport")
+	}
+	if New().WithReports(true).noReport || New().noReport {
+		t.Error("reporting is off without WithReports(false)")
+	}
+}
+
+// TestWithReplayHintsAConfiguredBackend pins WithReplay: a backend configured
+// first (provider, reporting) replays the given spec as its hint, the same as
+// From does for a default backend.
+func TestWithReplayHintsAConfiguredBackend(t *testing.T) {
+	for _, k := range []string{v1.SpecEnv, v1.FromEnv} {
+		t.Setenv(k, "")
+	}
+	spec := &Spec{ID: "id-r", Hostname: "replayed.trycloudflare.com", AccountTag: "tag-r", Secret: []byte("s")}
+	b := New().WithProvider("api.trycloudflare.com").WithReports(false).WithReplay(spec)
+	hint, err := b.hint()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hint.Hostname != spec.Hostname || hint.ID != spec.ID {
+		t.Errorf("hint = %+v, want the replayed spec", hint)
+	}
+	if b.providerHost != "api.trycloudflare.com" || !b.noReport {
+		t.Error("WithReplay dropped the backend's configuration")
 	}
 }

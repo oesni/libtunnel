@@ -18,7 +18,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"os"
 	"time"
 )
 
@@ -195,10 +194,10 @@ var (
 // Tunnel.WithToken was given in place — and non-empty beats it, the way
 // every env mirror beats its code knob.
 func Token() string {
-	if v := os.Getenv(TokenEnv); v != "" {
+	if v := Getenv(TokenEnv); v != "" {
 		return v
 	}
-	return os.Getenv(ActionsTokenEnv)
+	return Getenv(ActionsTokenEnv)
 }
 
 // Budget reports how long the failure class err belongs to may keep failing

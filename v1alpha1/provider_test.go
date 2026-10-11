@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	v1 "github.com/cnuss/libtunnel/v1"
-	"github.com/cnuss/libtunnel/v1alpha1"
-	"github.com/cnuss/libtunnel/v1alpha1/cloudflare"
+	v1 "github.com/oesni/libtunnel/v1"
+	"github.com/oesni/libtunnel/v1alpha1"
+	"github.com/oesni/libtunnel/v1alpha1/cloudflare"
 )
 
 func TestSpecEnvironRoundTrip(t *testing.T) {
@@ -217,5 +217,36 @@ func TestExportProviderExportsResolvedSpec(t *testing.T) {
 	// The mint lands in the environment for spawned children to inherit.
 	if env := os.Getenv(v1.SpecEnv); !strings.Contains(env, "minted.tunneled.pizza") {
 		t.Errorf("env %s = %q, want the minted spec exported", v1.SpecEnv, env)
+	}
+}
+
+// TestExportSpecUnderIsolatedLeavesProcessEnv pins the embedding mode: with
+// v1.Isolated installed, a minted spec (secret included) is not written into
+// the process environment, so nothing the process spawns can inherit it, and a
+// spec already in the process environment is not adopted.
+func TestExportSpecUnderIsolatedLeavesProcessEnv(t *testing.T) {
+	t.Setenv(v1.SpecEnv, "")
+	t.Setenv(v1.HostnameEnv, "")
+	v1.SetEnvironment(v1.Isolated)
+	t.Cleanup(func() { v1.SetEnvironment(nil) })
+
+	spec := &cloudflare.Spec{Hostname: "isolated.trycloudflare.com", Secret: []byte("s3cret")}
+	if err := v1alpha1.ExportSpec("cloudflare", spec); err != nil {
+		t.Fatal(err)
+	}
+	if env := os.Getenv(v1.SpecEnv); env != "" {
+		t.Errorf("process %s = %q under Isolated, want untouched", v1.SpecEnv, env)
+	}
+	if env := os.Getenv(v1.HostnameEnv); env != "" {
+		t.Errorf("process %s = %q under Isolated, want untouched", v1.HostnameEnv, env)
+	}
+
+	inherited, err := v1alpha1.SpecEnviron("cloudflare", &cloudflare.Spec{Hostname: "inherited.example"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv(v1.SpecEnv, inherited[len(v1.SpecEnv)+1:])
+	if ok, err := v1alpha1.SpecFromEnv("cloudflare", &cloudflare.Spec{}); ok || err != nil {
+		t.Errorf("SpecFromEnv = (%t, %v) under Isolated, want (false, nil)", ok, err)
 	}
 }

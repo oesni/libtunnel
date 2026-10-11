@@ -6,8 +6,8 @@ package spec
 import (
 	"net/http"
 
-	v1 "github.com/cnuss/libtunnel/v1"
-	"github.com/cnuss/libtunnel/v1alpha1"
+	v1 "github.com/oesni/libtunnel/v1"
+	"github.com/oesni/libtunnel/v1alpha1"
 )
 
 // Backend is the tag a Cloudflare spec serialises under: the name the

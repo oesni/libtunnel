@@ -20,7 +20,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	v1 "github.com/cnuss/libtunnel/v1"
+	v1 "github.com/oesni/libtunnel/v1"
 )
 
 // Engine is the alpha-internal contract behind v1.Backend: what the tunnel
@@ -266,7 +266,10 @@ func (t *TunnelImpl[T]) letGo() bool {
 // Serialize implements v1.Tunnel: the resolved spec's Serialize. A getter
 // like Hostname — the first use resolves the spec.
 func (t *TunnelImpl[T]) Serialize() string {
-	return t.Spec().Serialize()
+	if s, ok := t.resolved(); ok {
+		return s.Serialize()
+	}
+	return ""
 }
 
 // deliver hands t to whoever waits on signal. Each call gets its own channel:
@@ -338,7 +341,7 @@ func (t *TunnelImpl[T]) Logger() *slog.Logger {
 // level. An unknown value gets info plus a warning, so a typo surfaces
 // instead of silencing logs.
 func defaultLogger() *slog.Logger {
-	env, ok := os.LookupEnv(v1.LogEnv)
+	env, ok := v1.LookupEnv(v1.LogEnv)
 	if !ok || env == "" {
 		return slog.New(slog.DiscardHandler)
 	}
@@ -359,7 +362,7 @@ func defaultLogger() *slog.Logger {
 // unparsable value for the backend to surface at connect — loud beats a
 // silently ignored override.
 func EnvBool(name string) (value, fixed bool, err error) {
-	env, ok := os.LookupEnv(name)
+	env, ok := v1.LookupEnv(name)
 	if !ok || env == "" {
 		return false, false, nil
 	}
@@ -375,7 +378,7 @@ func EnvBool(name string) (value, fixed bool, err error) {
 // and err carries an unparsable value for the backend to surface at connect.
 // The value uses time.ParseDuration syntax (e.g. "1s", "500ms").
 func EnvDuration(name string) (value time.Duration, fixed bool, err error) {
-	env, ok := os.LookupEnv(name)
+	env, ok := v1.LookupEnv(name)
 	if !ok || env == "" {
 		return 0, false, nil
 	}

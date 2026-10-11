@@ -6,10 +6,10 @@
 //
 //   - libtunnel (this package) — thin façade exposing New and the backend
 //     constructors. Stable surface for application code.
-//   - github.com/cnuss/libtunnel/v1 — the stable Tunnel/Provider/Backend
+//   - github.com/oesni/libtunnel/v1 — the stable Tunnel/Provider/Backend
 //     interfaces and spec types. Application code that wants to declare
 //     types against the contract imports this.
-//   - github.com/cnuss/libtunnel/v1alpha1 — the current implementation: the
+//   - github.com/oesni/libtunnel/v1alpha1 — the current implementation: the
 //     lazy tunnel core plus generic providers, with backend engines in
 //     subpackages (v1alpha1/cloudflare). Internals may change between alpha
 //     revisions.
@@ -34,17 +34,17 @@ import (
 	"fmt"
 	"runtime/debug"
 
-	v1 "github.com/cnuss/libtunnel/v1"
-	"github.com/cnuss/libtunnel/v1alpha1"
-	"github.com/cnuss/libtunnel/v1alpha1/cloudflare"
+	v1 "github.com/oesni/libtunnel/v1"
+	"github.com/oesni/libtunnel/v1alpha1"
+	"github.com/oesni/libtunnel/v1alpha1/cloudflare"
 )
 
 // modulePath is libtunnel's import path — used to find libtunnel's own entry
 // in an importer's build info.
-const modulePath = "github.com/cnuss/libtunnel"
+const modulePath = "github.com/oesni/libtunnel"
 
 // version is stamped into libtunnel's own release binaries via
-// -ldflags "-X github.com/cnuss/libtunnel.version=<tag>" (the Makefile,
+// -ldflags "-X github.com/oesni/libtunnel.version=<tag>" (the Makefile,
 // Dockerfile, and release workflow all pass the release tag). It is empty in
 // a plain `go build` and in every downstream consumer's build, where Version
 // derives the value from build info instead.
@@ -255,16 +255,24 @@ func Cloudflare() *cloudflare.Backend {
 // credential chain — including over a code-pinned From spec, after
 // LIBTUNNEL_SPEC (env beats code; SPEC beats FROM).
 func From(spec string) TunnelV1 {
+	return FromWith(spec, Cloudflare())
+}
+
+// FromWith is From through a backend the caller has already configured — a
+// mint provider (WithProvider), reporting (WithReports) and so on — so a
+// stored spec is replayed, and if need be re-minted, under that configuration
+// rather than the defaults. The backend must not be used for another tunnel.
+func FromWith(spec string, cf *cloudflare.Backend) TunnelV1 {
 	return v1alpha1.From(spec, func(backend string, raw json.RawMessage, aside v1alpha1.Aside) (v1.Tunnel, error) {
 		switch backend {
 		case "":
-			return New(Cloudflare()), nil
+			return New(cf), nil
 		case "cloudflare":
 			s := &cloudflare.Spec{}
 			if err := v1alpha1.Unpack(raw, aside, s); err != nil {
 				return nil, fmt.Errorf("invalid cloudflare spec: %w", err)
 			}
-			return v1alpha1.New(cloudflare.From(s)), nil
+			return v1alpha1.New(cf.WithReplay(s)), nil
 		default:
 			return nil, fmt.Errorf("unknown backend %q", backend)
 		}

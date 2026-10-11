@@ -36,9 +36,9 @@ import (
 
 	"golang.org/x/net/websocket"
 
-	"github.com/cnuss/libtunnel"
-	v1 "github.com/cnuss/libtunnel/v1"
-	"github.com/cnuss/libtunnel/v1alpha1/cloudflare"
+	"github.com/oesni/libtunnel"
+	v1 "github.com/oesni/libtunnel/v1"
+	"github.com/oesni/libtunnel/v1alpha1/cloudflare"
 )
 
 // TestLiveTunnel mints one tunnel and runs every scenario that doesn't need

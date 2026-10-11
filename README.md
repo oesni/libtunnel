@@ -24,7 +24,7 @@ tunnel's first use of the default.
 ## Quick Start
 
 ```sh
-go get github.com/cnuss/libtunnel
+go get github.com/oesni/libtunnel
 ```
 
 ```go
@@ -37,7 +37,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/cnuss/libtunnel"
+	"github.com/oesni/libtunnel"
 )
 
 func main() {
@@ -69,14 +69,14 @@ self-signed certificates welcome.)
 Three packages, stable/alpha versioning:
 
 ```
-github.com/cnuss/libtunnel                      — root façade: New, backends,
+github.com/oesni/libtunnel                      — root façade: New, backends,
                                                   providers, handoff helpers.
-github.com/cnuss/libtunnel/v1                   — stable Tunnel +
+github.com/oesni/libtunnel/v1                   — stable Tunnel +
                                                   Provider[T]/Backend[T] contract.
-github.com/cnuss/libtunnel/v1alpha1             — lazy tunnel core + generic
+github.com/oesni/libtunnel/v1alpha1             — lazy tunnel core + generic
                                                   providers. May change between
                                                   alpha revisions.
-github.com/cnuss/libtunnel/v1alpha1/cloudflare  — the cloudflared quick-tunnel
+github.com/oesni/libtunnel/v1alpha1/cloudflare  — the cloudflared quick-tunnel
                                                   engine + its Spec type.
 ```
 
@@ -152,11 +152,18 @@ func New[T v1.Spec](backend v1.Backend[T]) v1.Tunnel // T wires the backend, not
 func Cloudflare() v1.Backend[*cloudflare.Spec]   // in-process cloudflared engine;
                                                  // mints an anonymous quick tunnel,
                                                  // hinting with whatever it knows
+func FromWith(spec string, cf *cloudflare.Backend) v1.Tunnel // From through a backend
+                                                 // already configured (provider,
+                                                 // reports); cf serves one tunnel
 func From(spec string) v1.Tunnel                 // replay a serialized spec (JSON
                                                  // or file path) as the mint's hint
 func Version() string                            // the libtunnel release this build
                                                  // links against (matches the git tag
                                                  // and the container image tag)
+
+// v1: where LIBTUNNEL_* is read and specs are exported
+func SetEnvironment(e Environment)               // nil restores the process environment
+var Isolated Environment                         // reads nothing, writes nothing
 
 // parent→child handoff: minting exports the LIBTUNNEL_SPEC env var, and the
 // child's own mint sends it as its hint, so the provider hands the same
@@ -318,6 +325,27 @@ rebuild. (The one exception is noted below.)
 | `LIBTUNNEL_LOG` | `WithLogger()` | `debug`\|`info`\|`warn`\|`error`: the default logger becomes a stderr text logger at that level instead of silent. *The exception:* an explicit `WithLogger` keeps its handler — env carries a level, not a sink. |
 | `LIBTUNNEL_NO_REPORT` | — | Set to anything to stop the mint client reporting network errors to the provider. On by default: like a browser, it honors the provider's `NEL` + `Report-To` headers and posts a 4xx, timeout, DNS or TLS failure to the collector they name (for tunnel.pizza, Cloudflare's, into the zone's NEL analytics). Never carries credentials. |
 | `LIBTUNNEL_HOSTNAME` | — | Export-only mirror of the minted spec's hostname, for tooling; never read. |
+
+### Embedding: an isolated environment
+
+An application that configures every tunnel in code can stop libtunnel from
+reading or writing the process environment:
+
+```go
+v1.SetEnvironment(v1.Isolated) // before the first tunnel starts
+```
+
+Under `v1.Isolated` every `LIBTUNNEL_*` variable (and the
+`ACTIONS_RUNTIME_TOKEN` fallback) reads as unset, so a variable inherited from
+whoever started the process cannot redirect a tunnel's origin or replay a spec,
+and a minted spec — secret included — is not exported for children. Proxy
+settings (`HTTPS_PROXY` and friends) still come from the process environment.
+`v1.SetEnvironment` takes any `v1.Environment`; nil restores the process
+environment.
+
+Network-error reporting has a code-level switch as well:
+`libtunnel.Cloudflare().WithReports(false)` keeps the mint client's reports on
+this machine; `LIBTUNNEL_NO_REPORT` turns them off either way.
 
 Backend-scoped variables follow `LIBTUNNEL__<BACKEND>_<FIELD>` (double
 underscore namespaces the backend) and live with their backend package. For
